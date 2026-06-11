@@ -1,12 +1,12 @@
 {
   "id": "intelli-integration",
   "title": "Intelli 集成项目",
-  "version": "0.1.11",
+  "version": "0.1.12",
   "providers": [
     {
       "id": "automation",
       "title": "Intelli 集成项目自动化",
-      "icon": "bolt.rectangle",
+      "icon": "bolt.square",
       "statusFile": "runtime/status.json",
       "configFile": "runtime/config.json",
       "command": "bin/intelli-integration-provider",
