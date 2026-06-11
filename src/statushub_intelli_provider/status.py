@@ -93,10 +93,8 @@ def build_snapshot(runs_dir: Path | None = None) -> dict[str, Any]:
         enabled = schedule.get("enabled") != "false"
         if run:
             status = RUN_STATUS_TO_HUB.get(str(run.get("status", "unknown")), "unknown")
-            summary = str(run.get("summary") or definition.default_summary)
-            note = str(run.get("note") or "").strip()
-            subtitle = f"{summary} · {note}" if note else summary
             artifact_url = first_artifact_url(run)
+            subtitle = subtitle_for_run(run, status, definition.default_summary, artifact_url)
             detail.update(run_detail(run))
         else:
             status = "success" if enabled else "idle"
@@ -165,6 +163,19 @@ def first_artifact_url(run: dict[str, Any]) -> str | None:
             if isinstance(artifact, dict) and artifact.get("url"):
                 return str(artifact["url"])
     return None
+
+
+def subtitle_for_run(
+    run: dict[str, Any],
+    hub_status: str,
+    default_summary: str,
+    artifact_url: str | None,
+) -> str:
+    if hub_status == "success" and artifact_url:
+        return ""
+    summary = str(run.get("summary") or default_summary)
+    note = str(run.get("note") or "").strip()
+    return f"{summary} · {note}" if note else summary
 
 
 def recent_artifact_links(job_type: str, runs: list[dict[str, Any]], limit: int = 3) -> list[dict[str, str]]:

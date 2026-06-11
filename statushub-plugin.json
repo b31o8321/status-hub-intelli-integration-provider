@@ -1,7 +1,7 @@
 {
   "id": "intelli-integration",
   "title": "Intelli 集成项目",
-  "version": "0.1.9",
+  "version": "0.1.10",
   "providers": [
     {
       "id": "automation",

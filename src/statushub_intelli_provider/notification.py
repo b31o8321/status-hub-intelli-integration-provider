@@ -134,7 +134,8 @@ def notification_title(record: dict[str, Any]) -> str:
 def notification_markdown(record: dict[str, Any], settings: dict[str, Any] | None = None) -> str:
     custom = str(record.get("notificationMarkdown") or "").strip()
     if custom:
-        return normalize_visible_mentions(custom, display_name_mapping(settings or {}))
+        markdown = normalize_visible_mentions(custom, display_name_mapping(settings or {}))
+        return append_source_links(record, markdown)
 
     title = JOB_TITLE.get(str(record.get("jobType")), str(record.get("jobType", "Intelli 自动化")))
     lines = [
@@ -154,7 +155,39 @@ def notification_markdown(record: dict[str, Any], settings: dict[str, Any] | Non
                 lines.append(f"- 产出：[{artifact.get('title') or '文档'}]({artifact['url']})")
     if record.get("logPath"):
         lines.append(f"- 日志：`{record['logPath']}`")
-    return "\n".join(lines)
+    return append_source_links(record, "\n".join(lines))
+
+
+def append_source_links(record: dict[str, Any], markdown: str) -> str:
+    links = source_links_for_job(str(record.get("jobType") or ""))
+    missing_links = [
+        (title, url)
+        for title, url in links
+        if url and url not in markdown
+    ]
+    if not missing_links:
+        return markdown
+    lines = [markdown.rstrip(), "", "#### 快捷入口"]
+    for title, url in missing_links:
+        lines.append(f"- [{title}]({url})")
+    return "\n".join(line for line in lines if line is not None).rstrip()
+
+
+def source_links_for_job(job_type: str) -> list[tuple[str, str]]:
+    source_links = load_config().get("sourceLinks", {})
+    if not isinstance(source_links, dict):
+        return []
+    if job_type == "daily-feedback-defect-triage":
+        return [
+            ("缺陷反馈源表", str(source_links.get("integrationDemandTable") or "")),
+            ("本周进行中需求视图", str(source_links.get("iterationRequirementDevelopmentView") or "")),
+        ]
+    if job_type == "prepare-sprint-iteration":
+        return [
+            ("需求池源表", str(source_links.get("integrationDemandTable") or "")),
+            ("项目管理需求表", str(source_links.get("iterationRequirementTable") or "")),
+        ]
+    return []
 
 
 def display_name_mapping(settings: dict[str, Any]) -> dict[str, str]:
@@ -179,7 +212,7 @@ def normalize_visible_mentions(markdown: str, names: dict[str, str]) -> str:
     def replace(match: re.Match[str]) -> str:
         prefix = match.group(1) or ""
         user_id = match.group(2)
-        return f"{prefix}{names.get(user_id, user_id)}"
+        return f"{prefix}@{names.get(user_id, user_id)}"
 
     return re.sub(r"(^|[^\w])@(\d{6,})", replace, markdown)
 
