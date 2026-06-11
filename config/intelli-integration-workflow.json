@@ -33,6 +33,32 @@
     "humanConfirmationRequiredBeforeTableWriteback": true,
     "nextSprintRule": "On Friday or later, sprint preparation targets the next week instead of the current week."
   },
+  "schedules": [
+    {
+      "jobType": "daily-feedback-defect-triage",
+      "enabled": true,
+      "cron": "30 9 * * 1-5",
+      "label": "工作日 09:30 自动生成每日反馈缺陷分析"
+    },
+    {
+      "jobType": "track-sprint-demand-progress",
+      "enabled": true,
+      "cron": "0 17 * * 1-5",
+      "label": "工作日 17:00 自动追踪迭代需求进度"
+    },
+    {
+      "jobType": "prepare-sprint-iteration",
+      "enabled": true,
+      "cron": "0 10 * * 5",
+      "label": "每周五 10:00 自动准备下周迭代需求"
+    },
+    {
+      "jobType": "production-log-analysis",
+      "enabled": false,
+      "cron": "0 11 * * 1-5",
+      "label": "生产日志分析默认手动触发"
+    }
+  ],
   "jobs": [
     {
       "jobType": "prepare-sprint-iteration",

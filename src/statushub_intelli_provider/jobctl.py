@@ -7,6 +7,8 @@ import json
 import tempfile
 
 from .jobs import JOB_TYPES
+from .runner import run_job
+from .scheduler import load_schedules, next_run_after
 from .status import runs_directory
 
 
@@ -39,8 +41,17 @@ def main(argv: list[str] | None = None) -> int:
     record.add_argument("--log-path")
     record.add_argument("--note")
 
+    run = subparsers.add_parser("run", help="run one supported job through the provider runner")
+    run.add_argument("--job-type", required=True, choices=sorted(JOB_TYPES))
+    run.add_argument("--trigger", default="manual")
+    run.add_argument("--note")
+    run.set_defaults(func=run_supported_job)
+
     list_jobs = subparsers.add_parser("list-jobs", help="list supported job types")
     list_jobs.set_defaults(func=list_supported_jobs)
+
+    list_schedules = subparsers.add_parser("list-schedules", help="list configured schedules")
+    list_schedules.set_defaults(func=list_schedules_config)
 
     args = parser.parse_args(argv)
     if args.command == "record":
@@ -97,6 +108,22 @@ def list_supported_jobs(_args: argparse.Namespace) -> int:
     return 0
 
 
+def run_supported_job(args: argparse.Namespace) -> int:
+    path = run_job(args.job_type, trigger=args.trigger, note=args.note)
+    print(path)
+    return 0
+
+
+def list_schedules_config(_args: argparse.Namespace) -> int:
+    now = datetime.now().astimezone()
+    for schedule in load_schedules():
+        enabled = "enabled" if schedule.enabled else "disabled"
+        next_run = next_run_after(schedule.cron, now) if schedule.enabled else None
+        suffix = f" next={next_run.isoformat(timespec='minutes')}" if next_run else ""
+        print(f"{schedule.job_type} {enabled} cron='{schedule.cron}'{suffix}")
+    return 0
+
+
 def write_json(path: Path, payload: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     data = json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True)
@@ -111,4 +138,3 @@ def write_json(path: Path, payload: dict) -> None:
         handle.write("\n")
         tmp_path = Path(handle.name)
     tmp_path.replace(path)
-

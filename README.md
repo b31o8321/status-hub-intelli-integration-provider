@@ -44,6 +44,28 @@ SLS project, human-confirmation policy, and the current team role split:
 
 Demand sizing uses Scrum `point`, not `Size`.
 
+## Scheduling
+
+The provider owns its own scheduler. Status Hub only starts the provider
+process and reads its status file.
+
+Default schedules:
+
+| Job | Schedule | Behavior |
+| --- | --- | --- |
+| Daily feedback defect triage | Weekdays 09:30 | Create a run record for daily defect analysis |
+| Sprint demand progress tracking | Weekdays 17:00 | Create a run record for progress tracking |
+| Sprint demand preparation | Friday 10:00 | Create a run record for next-sprint demand preparation |
+| Production log analysis | Disabled by default | Manual trigger only |
+
+The scheduler uses the `schedules` array in
+`config/intelli-integration-workflow.json`. It supports standard 5-field cron
+expressions: `minute hour day month weekday`.
+
+The first implementation intentionally records a run and marks it
+`needs_confirmation` unless the job config provides a shell `command`. This keeps
+human/Codex confirmation in the loop and avoids silent DingTalk writeback.
+
 ## Status Hub Plugin
 
 The plugin manifest is `statushub-plugin.json`. Status Hub starts:
@@ -119,6 +141,26 @@ bin/intelli-integration-job record \
   --artifact-title "每日反馈缺陷分析" \
   --artifact-url "https://alidocs.dingtalk.com/i/nodes/..."
 ```
+
+Run a job through the provider runner:
+
+```bash
+bin/intelli-integration-job run \
+  --job-type prepare-sprint-iteration \
+  --trigger manual \
+  --note "手动验证"
+```
+
+List schedules:
+
+```bash
+bin/intelli-integration-job list-schedules
+```
+
+If a job config has a `command`, the runner executes it, writes stdout/stderr to
+`~/Library/Application Support/IntelliIntegrationAutomation/logs`, and stores the
+log path in the run record. Without a command, the runner creates a
+`needs_confirmation` record for manual/Codex execution.
 
 Run the provider once:
 

@@ -85,16 +85,19 @@ def sort_key(run: dict[str, Any]) -> str:
 def build_snapshot(runs_dir: Path | None = None) -> dict[str, Any]:
     runs = load_runs(runs_dir)
     latest = latest_runs_by_type(runs)
+    schedule_by_type = load_schedule_details()
     items = []
 
     for definition in JOB_DEFINITIONS:
         run = latest.get(definition.job_type)
+        detail = schedule_by_type.get(definition.job_type, {}).copy()
         if run:
             status = RUN_STATUS_TO_HUB.get(str(run.get("status", "unknown")), "unknown")
             summary = str(run.get("summary") or definition.default_summary)
             note = str(run.get("note") or "").strip()
             subtitle = f"{summary} · {note}" if note else summary
             artifact_url = first_artifact_url(run)
+            detail.update(run_detail(run))
         else:
             status = "idle"
             subtitle = definition.default_summary
@@ -107,6 +110,8 @@ def build_snapshot(runs_dir: Path | None = None) -> dict[str, Any]:
                 "subtitle": subtitle,
                 "status": status,
                 "url": artifact_url,
+                "value": value_for(status),
+                "detail": detail,
             }
         )
 
@@ -126,6 +131,41 @@ def first_artifact_url(run: dict[str, Any]) -> str | None:
             if isinstance(artifact, dict) and artifact.get("url"):
                 return str(artifact["url"])
     return None
+
+
+def run_detail(run: dict[str, Any]) -> dict[str, str]:
+    detail = {}
+    for source_key, label in {
+        "runId": "runId",
+        "trigger": "trigger",
+        "startedAt": "startedAt",
+        "finishedAt": "finishedAt",
+        "logPath": "logPath",
+        "_path": "recordPath",
+    }.items():
+        value = run.get(source_key)
+        if value:
+            detail[label] = str(value)
+    return detail
+
+
+def load_schedule_details() -> dict[str, dict[str, str]]:
+    try:
+        from .scheduler import schedule_details
+    except ImportError:
+        return {}
+    return schedule_details()
+
+
+def value_for(status: str) -> str:
+    return {
+        "idle": "空闲",
+        "running": "运行中",
+        "attention": "待确认",
+        "failed": "失败",
+        "success": "完成",
+        "unknown": "未知",
+    }.get(status, status)
 
 
 def overall_status(statuses: list[str], has_runs: bool) -> str:
@@ -157,8 +197,12 @@ def summary_text(items: list[dict[str, Any]], runs: list[dict[str, Any]]) -> str
 
 
 def write_snapshot(path: Path, snapshot: dict[str, Any]) -> None:
+    write_json(path, snapshot)
+
+
+def write_json(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    payload = json.dumps(snapshot, ensure_ascii=False, indent=2, sort_keys=True)
+    data = json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True)
     with tempfile.NamedTemporaryFile(
         "w",
         encoding="utf-8",
@@ -166,8 +210,7 @@ def write_snapshot(path: Path, snapshot: dict[str, Any]) -> None:
         delete=False,
         prefix=f".{path.name}.",
     ) as handle:
-        handle.write(payload)
+        handle.write(data)
         handle.write("\n")
         tmp_path = Path(handle.name)
     tmp_path.replace(path)
-
