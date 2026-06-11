@@ -15,10 +15,10 @@ The provider exposes three Intelli integration work streams:
 - Sprint demand preparation: collect integration-related demand candidates,
   manual demand notes, point estimates, priorities, sprint document links, and
   demand-pool status items that may need human-confirmed sync.
-- Daily feedback defect triage: group daily feedback defects by module and
-  assign owners for investigation. This daily job also checks in-progress
-  integration requirements planned for the current week and reminds owners to
-  update progress or report blockers.
+- Daily feedback defect triage: group only integration-project related daily
+  feedback defects by integration module and assign owners for investigation.
+  This daily job also checks in-progress integration requirements planned for
+  the current week and reminds owners to update progress or report blockers.
 - Production log analysis: track production integration-error analysis outputs
   separately from sprint demand preparation.
 
