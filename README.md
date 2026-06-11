@@ -27,6 +27,23 @@ Production SLS routing for log-analysis jobs should use:
 project: shulex-prod-applications-0714
 ```
 
+Workflow defaults live in:
+
+```text
+config/intelli-integration-workflow.json
+```
+
+That file records the sprint root folder, DingTalk AI table links, production
+SLS project, human-confirmation policy, and the current team role split:
+
+- 张意乾: PO and technical support, not direct implementation owner.
+- 许嘉凯: 4-year developer, primary owner for higher-complexity integration
+  backend/platform work.
+- 戴军: 2-year developer, owner for smaller scoped fixes, defect triage, and
+  well-bounded integration tasks.
+
+Demand sizing uses Scrum `point`, not `Size`.
+
 ## Status Hub Plugin
 
 The plugin manifest is `statushub-plugin.json`. Status Hub starts:
@@ -86,6 +103,10 @@ Supported run statuses:
 - `canceled`
 - `unknown`
 
+Jobs that would write back to DingTalk AI tables should use
+`needs_confirmation` after analysis. The actual writeback should happen only
+after manual confirmation.
+
 ## Recording Runs
 
 For local testing or manual integration:
@@ -111,4 +132,3 @@ Run as a daemon:
 ```bash
 STATUS_HUB_STATUS_FILE=/tmp/intelli-status.json bin/intelli-integration-provider
 ```
-

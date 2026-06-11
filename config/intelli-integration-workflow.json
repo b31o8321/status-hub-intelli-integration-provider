@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "sprintRootFolderUrl": "https://alidocs.dingtalk.com/i/nodes/kDnRL6jAJMKP6OwRcXgv3lLGWyMoPYe1",
+  "sourceLinks": {
+    "integrationDemandTable": "https://alidocs.dingtalk.com/i/nodes/93NwLYZXWyQw9BN3HXlE4KA1WkyEqBQm?cid=5135888%3A4726190016&corpId=ding6b997aba57dd135335c2f4657eb6378f&iframeQuery=entrance%3Ddata%26sheetId%3Dp3H6ppE%26viewId%3DfnsvxPs",
+    "iterationRequirementTable": "https://alidocs.dingtalk.com/i/nodes/vy20BglGWOvXrwqbCm7Q29aP8A7depqY?cid=66369750554&corpId=ding6b997aba57dd135335c2f4657eb6378f&iframeQuery=entrance%3Ddata%26sheetId%3DtB7knsJ%26viewId%3D33fvQ2j"
+  },
+  "productionLogs": {
+    "slsProject": "shulex-prod-applications-0714",
+    "modulePolicy": "production-log-analysis outputs stay in a separate module and should not be mixed into sprint demand preparation unless humans explicitly promote them."
+  },
+  "team": {
+    "poAndTechSupport": {
+      "name": "张意乾",
+      "implementationOwner": false
+    },
+    "developers": [
+      {
+        "name": "许嘉凯",
+        "experienceYears": 4,
+        "defaultRole": "higher-complexity integration backend and platform owner"
+      },
+      {
+        "name": "戴军",
+        "experienceYears": 2,
+        "defaultRole": "bounded fixes, defect triage, and smaller integration tasks"
+      }
+    ]
+  },
+  "planning": {
+    "unit": "point",
+    "sprintLengthDays": 5,
+    "humanConfirmationRequiredBeforeTableWriteback": true,
+    "nextSprintRule": "On Friday or later, sprint preparation targets the next week instead of the current week."
+  },
+  "jobs": [
+    {
+      "jobType": "prepare-sprint-iteration",
+      "skill": "prepare-sprint-iteration",
+      "cadence": "weekly-or-manual",
+      "requiresHumanConfirmation": true,
+      "outputs": ["sprint folder", "需求整理文档", "point estimate", "priority rationale"]
+    },
+    {
+      "jobType": "daily-feedback-defect-triage",
+      "skill": "daily-feedback-defect-triage",
+      "cadence": "daily",
+      "requiresHumanConfirmation": true,
+      "outputs": ["module grouping", "owner assignment", "repair candidates"]
+    },
+    {
+      "jobType": "track-sprint-demand-progress",
+      "skill": "track-sprint-demand-progress",
+      "cadence": "daily-or-manual",
+      "requiresHumanConfirmation": true,
+      "outputs": ["progress report", "candidate writeback list"]
+    },
+    {
+      "jobType": "production-log-analysis",
+      "skill": "prepare-sprint-iteration",
+      "cadence": "manual-or-scheduled",
+      "requiresHumanConfirmation": true,
+      "outputs": ["high-frequency error summary", "noise-reduction candidates", "fix candidates"]
+    }
+  ]
+}
