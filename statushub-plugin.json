@@ -1,0 +1,16 @@
+{
+  "id": "intelli-integration",
+  "title": "Intelli 集成项目",
+  "version": "0.1.0",
+  "providers": [
+    {
+      "id": "automation",
+      "title": "Intelli 集成项目自动化",
+      "icon": "bolt.rectangle",
+      "statusFile": "runtime/status.json",
+      "command": "bin/intelli-integration-provider",
+      "arguments": [],
+      "workingDirectory": "."
+    }
+  ]
+}
