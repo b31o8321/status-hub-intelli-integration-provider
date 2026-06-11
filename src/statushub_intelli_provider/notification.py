@@ -7,6 +7,7 @@ import hashlib
 import hmac
 import json
 import os
+import re
 import time
 from typing import Any
 from urllib import parse, request
@@ -32,7 +33,7 @@ def notify_run(record: dict[str, Any]) -> None:
         webhook,
         str(settings.get("secret") or ""),
         notification_title(record),
-        notification_markdown(record),
+        notification_markdown(record, settings),
         at_user_ids(record),
     )
 
@@ -130,10 +131,10 @@ def notification_title(record: dict[str, Any]) -> str:
     return f"{JOB_TITLE.get(str(record.get('jobType')), 'Intelli 自动化')}：{status_text(record)}"
 
 
-def notification_markdown(record: dict[str, Any]) -> str:
+def notification_markdown(record: dict[str, Any], settings: dict[str, Any] | None = None) -> str:
     custom = str(record.get("notificationMarkdown") or "").strip()
     if custom:
-        return custom
+        return normalize_visible_mentions(custom, display_name_mapping(settings or {}))
 
     title = JOB_TITLE.get(str(record.get("jobType")), str(record.get("jobType", "Intelli 自动化")))
     lines = [
@@ -154,6 +155,33 @@ def notification_markdown(record: dict[str, Any]) -> str:
     if record.get("logPath"):
         lines.append(f"- 日志：`{record['logPath']}`")
     return "\n".join(lines)
+
+
+def display_name_mapping(settings: dict[str, Any]) -> dict[str, str]:
+    raw = settings.get("userDisplayNames")
+    if isinstance(raw, str) and raw.strip():
+        try:
+            raw = json.loads(raw)
+        except json.JSONDecodeError:
+            raw = {}
+    if not isinstance(raw, dict):
+        return {}
+    result: dict[str, str] = {}
+    for key, value in raw.items():
+        user_id = str(key).strip()
+        display_name = str(value).strip()
+        if user_id and display_name:
+            result[user_id] = display_name
+    return result
+
+
+def normalize_visible_mentions(markdown: str, names: dict[str, str]) -> str:
+    def replace(match: re.Match[str]) -> str:
+        prefix = match.group(1) or ""
+        user_id = match.group(2)
+        return f"{prefix}{names.get(user_id, user_id)}"
+
+    return re.sub(r"(^|[^\w])@(\d{6,})", replace, markdown)
 
 
 def at_user_ids(record: dict[str, Any]) -> list[str]:

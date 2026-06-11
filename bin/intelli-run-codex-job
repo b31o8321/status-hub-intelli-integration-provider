@@ -137,6 +137,8 @@ def build_prompt(job_type: str, trigger: str, job_config: dict, config: dict) ->
 - 需要创建或更新钉钉产出文档时，直接通过 MCP 完成。
 - 不要调用 provider 的 bin/intelli-integration-job record；provider 会解析你的最终 JSON 并统一写运行记录。
 - 不要直接调用钉钉机器人发送消息；如需通知，请返回 notificationMarkdown 和 notifyAtUserIds，由 provider 根据配置发送。
+- notificationMarkdown 正文中必须使用人名或 owner 显示名，例如“许嘉凯：...”；不要写 `@17417778857341994` 这类 userId，也不要用 userId 当显示文本。
+- 需要真正 @ 人时，只把钉钉 userId 放到 notifyAtUserIds 数组里。
 - 如果无法完成真实执行，返回 status=failed，并在 note 写明阻塞原因。
 
 最后一条回复必须只输出一个 JSON 对象，不能使用 markdown 代码块，不能附加解释文字。所有字段都必须包含；没有值时，字符串字段用 null，数组字段用 []。结构如下：
@@ -147,8 +149,8 @@ def build_prompt(job_type: str, trigger: str, job_config: dict, config: dict) ->
   "artifacts": [
     {{"title": "产出文档标题", "url": "https://alidocs.dingtalk.com/i/nodes/..."}}
   ],
-  "notificationMarkdown": "钉钉 markdown 汇总消息或 null",
-  "notifyAtUserIds": ["钉钉 userId，没有则返回空数组"],
+  "notificationMarkdown": "钉钉 markdown 汇总消息或 null，正文用人名显示，不写 @userId",
+  "notifyAtUserIds": ["钉钉 userId，仅用于真实 at，没有则返回空数组"],
   "note": "补充说明、人工确认项或 null"
 }}
 """.strip()
@@ -166,7 +168,7 @@ def job_instruction(job_type: str) -> str:
 - 同时读取项目管理表中本周计划完成且进行中的集成需求，提醒负责人更新进度或反馈卡点。
 - 在当前 Sprint 迭代文件夹中创建或更新当天文档，标题形如“每日反馈与进度提醒 YYYY-MM-DD”。
 - 返回 artifacts 至少包含当天钉钉文档链接。
-- 返回 notificationMarkdown，用于群内汇总提醒相关 Owner。
+- 返回 notificationMarkdown，用于群内汇总提醒相关 Owner；正文用人名显示，真实 at 只通过 notifyAtUserIds。
 """.strip()
     if job_type == "prepare-sprint-iteration":
         return """

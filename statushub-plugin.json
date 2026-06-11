@@ -1,7 +1,7 @@
 {
   "id": "intelli-integration",
   "title": "Intelli 集成项目",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "providers": [
     {
       "id": "automation",
@@ -37,6 +37,13 @@
               "type": "password",
               "placeholder": "SEC...",
               "help": "仅当钉钉机器人安全设置开启“加签”时填写；未开启加签时留空"
+            },
+            {
+              "key": "notifications.dingtalk.userDisplayNames",
+              "title": "人员显示名",
+              "type": "text",
+              "placeholder": "{\"17417778857341994\":\"许嘉凯\"}",
+              "help": "可选 JSON 映射。用于兜底把通知正文中的 userId 替换成人名；真正 @ 人仍使用 notifyAtUserIds"
             },
             {
               "key": "notifications.dingtalk.jobTypes",

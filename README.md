@@ -137,7 +137,10 @@ Example:
   "dingtalk": {
     "enabled": true,
     "accessToken": "xxx",
-    "secret": "SEC..."
+    "secret": "SEC...",
+    "userDisplayNames": {
+      "17417778857341994": "许嘉凯"
+    }
   }
 }
 ```
@@ -163,6 +166,11 @@ The default message includes status, trigger source, short summary, up to three
 artifact links, and a log path when available. Run records may also provide
 `notificationMarkdown` and `notifyAtUserIds`; in that case the provider sends
 the custom markdown summary and mentions the listed DingTalk users.
+
+`notificationMarkdown` should display human-readable names, while
+`notifyAtUserIds` triggers the actual DingTalk mentions. The optional
+`userDisplayNames` mapping is a fallback that rewrites visible `@userId` text to
+names before sending.
 
 ## Status Hub Plugin
 
