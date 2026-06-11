@@ -33,6 +33,15 @@
     "humanConfirmationRequiredBeforeTableWriteback": true,
     "nextSprintRule": "On Friday or later, sprint preparation targets the next week instead of the current week."
   },
+  "notifications": {
+    "dingtalk": {
+      "enabled": false,
+      "jobTypes": [
+        "daily-feedback-defect-triage",
+        "track-sprint-demand-progress"
+      ]
+    }
+  },
   "schedules": [
     {
       "jobType": "daily-feedback-defect-triage",

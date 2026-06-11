@@ -8,11 +8,14 @@ from typing import Any
 
 from .config import load_config
 from .jobs import JOB_DEFINITIONS
+from .notification import notify_run
 from .status import automation_home, now_iso
 from .status import write_json
 
 
 JOB_BY_TYPE = {job.job_type: job for job in JOB_DEFINITIONS}
+
+
 def locks_directory() -> Path:
     return automation_home() / "locks"
 
@@ -41,7 +44,7 @@ def run_job(job_type: str, trigger: str = "manual", note: str | None = None) -> 
     finally:
         os.close(fd)
 
-    run_id = f"{datetime.now().strftime('%Y%m%d-%H%M%S')}-{job_type}"
+    run_id = f"{datetime.now().strftime('%Y%m%d-%H%M%S-%f')[:-3]}-{job_type}"
     run_path = runs_directory() / f"{run_id}.json"
     definition = JOB_BY_TYPE[job_type]
     started_at = now_iso()
@@ -71,6 +74,10 @@ def run_job(job_type: str, trigger: str = "manual", note: str | None = None) -> 
     finally:
         record["finishedAt"] = now_iso()
         write_json(run_path, record)
+        try:
+            notify_run(record)
+        except Exception:
+            pass
         try:
             lock_path.unlink()
         except OSError:

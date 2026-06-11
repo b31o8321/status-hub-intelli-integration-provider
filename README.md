@@ -66,6 +66,53 @@ The first implementation intentionally records a run and marks it
 `needs_confirmation` unless the job config provides a shell `command`. This keeps
 human/Codex confirmation in the loop and avoids silent DingTalk writeback.
 
+Schedules can be enabled or disabled without editing the plugin repository:
+
+```bash
+bin/intelli-integration-job set-schedule \
+  --job-type daily-feedback-defect-triage \
+  --enabled false
+```
+
+Status Hub renders provider item actions, so each job can be manually triggered
+from the provider detail page and its schedule can be turned on or off there.
+
+## DingTalk Robot Notifications
+
+The provider can send a DingTalk robot markdown message when a run finishes.
+By default only these job types are selected for notifications:
+
+- `daily-feedback-defect-triage`
+- `track-sprint-demand-progress`
+
+The repository does not store robot credentials. Create this local file:
+
+```text
+~/Library/Application Support/IntelliIntegrationAutomation/notification.json
+```
+
+Example:
+
+```json
+{
+  "dingtalk": {
+    "enabled": true,
+    "webhook": "https://oapi.dingtalk.com/robot/send?access_token=...",
+    "secret": "SEC..."
+  }
+}
+```
+
+You can also use environment variables:
+
+```bash
+export DINGTALK_ROBOT_WEBHOOK="https://oapi.dingtalk.com/robot/send?access_token=..."
+export DINGTALK_ROBOT_SECRET="SEC..."
+```
+
+The message includes status, trigger source, short summary, up to three artifact
+links, and a log path when available.
+
 ## Status Hub Plugin
 
 The plugin manifest is `statushub-plugin.json`. Status Hub starts:

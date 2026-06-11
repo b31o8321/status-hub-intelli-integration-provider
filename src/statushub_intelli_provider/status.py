@@ -73,13 +73,8 @@ def latest_runs_by_type(runs: list[dict[str, Any]]) -> dict[str, dict[str, Any]]
 
 
 def sort_key(run: dict[str, Any]) -> str:
-    return str(
-        run.get("finishedAt")
-        or run.get("startedAt")
-        or run.get("createdAt")
-        or run.get("runId")
-        or ""
-    )
+    timestamp = str(run.get("finishedAt") or run.get("startedAt") or run.get("createdAt") or "")
+    return f"{timestamp}-{run.get('runId') or ''}"
 
 
 def build_snapshot(runs_dir: Path | None = None) -> dict[str, Any]:
@@ -90,7 +85,9 @@ def build_snapshot(runs_dir: Path | None = None) -> dict[str, Any]:
 
     for definition in JOB_DEFINITIONS:
         run = latest.get(definition.job_type)
-        detail = schedule_by_type.get(definition.job_type, {}).copy()
+        schedule = schedule_by_type.get(definition.job_type, {})
+        detail = display_schedule_detail(schedule)
+        enabled = schedule.get("enabled") != "false"
         if run:
             status = RUN_STATUS_TO_HUB.get(str(run.get("status", "unknown")), "unknown")
             summary = str(run.get("summary") or definition.default_summary)
@@ -99,10 +96,23 @@ def build_snapshot(runs_dir: Path | None = None) -> dict[str, Any]:
             artifact_url = first_artifact_url(run)
             detail.update(run_detail(run))
         else:
-            status = "idle"
+            status = "success" if enabled else "idle"
             subtitle = definition.default_summary
             artifact_url = None
 
+        schedule_action = {
+            "id": "disable-schedule" if enabled else "enable-schedule",
+            "title": "关闭定时" if enabled else "开启定时",
+            "command": "bin/intelli-integration-job",
+            "arguments": [
+                "set-schedule",
+                "--job-type",
+                definition.job_type,
+                "--enabled",
+                "false" if enabled else "true",
+            ],
+            "workingDirectory": ".",
+        }
         items.append(
             {
                 "id": definition.job_type,
@@ -112,10 +122,27 @@ def build_snapshot(runs_dir: Path | None = None) -> dict[str, Any]:
                 "url": artifact_url,
                 "value": value_for(status),
                 "detail": detail,
+                "actions": [
+                    {
+                        "id": "run",
+                        "title": "触发",
+                        "command": "bin/intelli-integration-job",
+                        "arguments": [
+                            "run",
+                            "--job-type",
+                            definition.job_type,
+                            "--trigger",
+                            "hub",
+                        ],
+                        "workingDirectory": ".",
+                    },
+                    schedule_action,
+                ],
+                "links": recent_artifact_links(definition.job_type, runs),
             }
         )
 
-    overall = overall_status([item["status"] for item in items], bool(runs))
+    overall = overall_status([item["status"] for item in items], any(item["status"] != "idle" for item in items))
     return {
         "status": overall,
         "summary": summary_text(items, runs),
@@ -133,20 +160,62 @@ def first_artifact_url(run: dict[str, Any]) -> str | None:
     return None
 
 
+def recent_artifact_links(job_type: str, runs: list[dict[str, Any]], limit: int = 3) -> list[dict[str, str]]:
+    links = []
+    related = [run for run in runs if str(run.get("jobType")) == job_type]
+    for run in sorted(related, key=sort_key, reverse=True):
+        artifacts = run.get("artifacts")
+        if not isinstance(artifacts, list):
+            continue
+        for index, artifact in enumerate(artifacts):
+            if not isinstance(artifact, dict) or not artifact.get("url"):
+                continue
+            title = str(artifact.get("title") or "产出文档")
+            finished = short_datetime(str(run.get("finishedAt") or run.get("startedAt") or ""))
+            links.append(
+                {
+                    "id": f"{run.get('runId', job_type)}-{index}",
+                    "title": f"{title} · {finished}" if finished else title,
+                    "url": str(artifact["url"]),
+                }
+            )
+            if len(links) >= limit:
+                return links
+    return links
+
+
 def run_detail(run: dict[str, Any]) -> dict[str, str]:
     detail = {}
-    for source_key, label in {
-        "runId": "runId",
-        "trigger": "trigger",
-        "startedAt": "startedAt",
-        "finishedAt": "finishedAt",
-        "logPath": "logPath",
-        "_path": "recordPath",
-    }.items():
-        value = run.get(source_key)
-        if value:
-            detail[label] = str(value)
+    started = short_datetime(str(run.get("startedAt") or ""))
+    trigger = str(run.get("trigger") or "")
+    if started:
+        trigger_text = "手动" if trigger in {"manual", "hub"} else "定时" if trigger == "scheduled" else trigger
+        detail["lastRunText"] = f"{started} {trigger_text}".strip()
+    finished = short_datetime(str(run.get("finishedAt") or ""))
+    if finished:
+        detail["finishedText"] = finished
+    if run.get("logPath"):
+        detail["logPath"] = str(run["logPath"])
     return detail
+
+
+def display_schedule_detail(schedule: dict[str, str]) -> dict[str, str]:
+    detail = {}
+    if schedule.get("enabled") == "false":
+        detail["nextRunText"] = "已关闭"
+    elif schedule.get("nextRunAt"):
+        detail["nextRunText"] = short_datetime(schedule["nextRunAt"])
+    return detail
+
+
+def short_datetime(value: str) -> str:
+    if not value:
+        return ""
+    try:
+        parsed = datetime.fromisoformat(value)
+    except ValueError:
+        return value
+    return parsed.strftime("%m-%d %H:%M")
 
 
 def load_schedule_details() -> dict[str, dict[str, str]]:
@@ -163,21 +232,18 @@ def value_for(status: str) -> str:
         "running": "运行中",
         "attention": "待确认",
         "failed": "失败",
-        "success": "完成",
+        "success": "正常",
         "unknown": "未知",
     }.get(status, status)
 
 
-def overall_status(statuses: list[str], has_runs: bool) -> str:
-    if not has_runs:
+def overall_status(statuses: list[str], has_enabled_or_runs: bool) -> str:
+    if not has_enabled_or_runs:
         return "idle"
     return max(statuses, key=lambda value: HUB_SEVERITY.get(value, 2))
 
 
 def summary_text(items: list[dict[str, Any]], runs: list[dict[str, Any]]) -> str:
-    if not runs:
-        return "暂无运行中的集成自动化任务"
-
     counts = {"running": 0, "attention": 0, "failed": 0, "success": 0}
     for item in items:
         status = item.get("status")
@@ -191,8 +257,10 @@ def summary_text(items: list[dict[str, Any]], runs: list[dict[str, Any]]) -> str
         parts.append(f"{counts['attention']} 个待确认")
     if counts["running"]:
         parts.append(f"{counts['running']} 个运行中")
+    if not parts and counts["success"] == 0:
+        parts.append("所有定时任务已关闭")
     if not parts:
-        parts.append(f"{counts['success']} 个最近完成")
+        parts.append(f"{counts['success']} 个已启用")
     return "，".join(parts)
 
 

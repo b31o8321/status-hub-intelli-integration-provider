@@ -8,7 +8,7 @@ import tempfile
 
 from .jobs import JOB_TYPES
 from .runner import run_job
-from .scheduler import load_schedules, next_run_after
+from .scheduler import load_schedules, next_run_after, set_schedule_enabled
 from .status import runs_directory
 
 
@@ -53,6 +53,11 @@ def main(argv: list[str] | None = None) -> int:
     list_schedules = subparsers.add_parser("list-schedules", help="list configured schedules")
     list_schedules.set_defaults(func=list_schedules_config)
 
+    set_schedule = subparsers.add_parser("set-schedule", help="enable or disable one schedule")
+    set_schedule.add_argument("--job-type", required=True, choices=sorted(JOB_TYPES))
+    set_schedule.add_argument("--enabled", required=True, choices=["true", "false"])
+    set_schedule.set_defaults(func=set_schedule_config)
+
     args = parser.parse_args(argv)
     if args.command == "record":
         return record_run(args)
@@ -63,7 +68,7 @@ def main(argv: list[str] | None = None) -> int:
 
 def record_run(args: argparse.Namespace) -> int:
     now = datetime.now().astimezone().isoformat(timespec="seconds")
-    run_id = args.run_id or f"{datetime.now().strftime('%Y%m%d-%H%M%S')}-{args.job_type}"
+    run_id = args.run_id or f"{datetime.now().strftime('%Y%m%d-%H%M%S-%f')[:-3]}-{args.job_type}"
     started_at = args.started_at or now
     finished_at = args.finished_at
     if args.status not in {"pending", "running"} and not finished_at:
@@ -121,6 +126,13 @@ def list_schedules_config(_args: argparse.Namespace) -> int:
         next_run = next_run_after(schedule.cron, now) if schedule.enabled else None
         suffix = f" next={next_run.isoformat(timespec='minutes')}" if next_run else ""
         print(f"{schedule.job_type} {enabled} cron='{schedule.cron}'{suffix}")
+    return 0
+
+
+def set_schedule_config(args: argparse.Namespace) -> int:
+    enabled = args.enabled == "true"
+    set_schedule_enabled(args.job_type, enabled)
+    print(f"{args.job_type} {'enabled' if enabled else 'disabled'}")
     return 0
 
 

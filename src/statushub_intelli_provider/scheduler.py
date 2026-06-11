@@ -26,6 +26,7 @@ def scheduler_state_path() -> Path:
 
 def load_schedules(config: dict[str, Any] | None = None) -> list[Schedule]:
     data = config or load_config()
+    overrides = load_state().get("enabledOverrides", {})
     schedules = []
     for item in data.get("schedules", []):
         if not isinstance(item, dict):
@@ -34,11 +35,14 @@ def load_schedules(config: dict[str, Any] | None = None) -> list[Schedule]:
         cron = str(item.get("cron") or "").strip()
         if job_type not in JOB_TYPES or not cron:
             continue
+        enabled = bool(item.get("enabled", True))
+        if isinstance(overrides, dict) and job_type in overrides:
+            enabled = bool(overrides[job_type])
         schedules.append(
             Schedule(
                 job_type=job_type,
                 cron=cron,
-                enabled=bool(item.get("enabled", True)),
+                enabled=enabled,
                 label=str(item.get("label") or job_type),
             )
         )
@@ -83,6 +87,15 @@ def schedule_details(now: datetime | None = None) -> dict[str, dict[str, str]]:
                 detail["nextRunAt"] = next_run.isoformat(timespec="minutes")
         details[schedule.job_type] = detail
     return details
+
+
+def set_schedule_enabled(job_type: str, enabled: bool) -> None:
+    if job_type not in JOB_TYPES:
+        raise ValueError(f"unsupported job type: {job_type}")
+    state = load_state()
+    state.setdefault("enabledOverrides", {})[job_type] = enabled
+    state["updatedAt"] = datetime.now().astimezone().isoformat(timespec="seconds")
+    write_json(scheduler_state_path(), state)
 
 
 def next_run_after(cron: str, start: datetime) -> datetime | None:
@@ -171,4 +184,3 @@ def load_state() -> dict[str, Any]:
     except (OSError, json.JSONDecodeError):
         return {"lastFired": {}}
     return data if isinstance(data, dict) else {"lastFired": {}}
-
