@@ -23,6 +23,7 @@ CODEX_WORKDIR = Path(
     os.environ.get("INTELLI_CODEX_WORKDIR")
     or "/Users/norman/development/vibe-coding/shulex-intelli"
 )
+RESULT_SCHEMA = ROOT / "config" / "codex-job-result.schema.json"
 KNOWN_CODEX_PATHS = [
     Path("/Users/norman/.nvm/versions/node/v20.20.2/bin/codex"),
 ]
@@ -62,10 +63,9 @@ def main() -> int:
             "exec",
             "-C",
             str(CODEX_WORKDIR),
-            "--sandbox",
-            "danger-full-access",
-            "--ask-for-approval",
-            "never",
+            "--dangerously-bypass-approvals-and-sandbox",
+            "--output-schema",
+            str(RESULT_SCHEMA),
             "--output-last-message",
             str(last_message),
             prompt,
@@ -139,17 +139,17 @@ def build_prompt(job_type: str, trigger: str, job_config: dict, config: dict) ->
 - 不要直接调用钉钉机器人发送消息；如需通知，请返回 notificationMarkdown 和 notifyAtUserIds，由 provider 根据配置发送。
 - 如果无法完成真实执行，返回 status=failed，并在 note 写明阻塞原因。
 
-最后一条回复必须只输出一个 JSON 对象，不能使用 markdown 代码块，不能附加解释文字。结构如下：
+最后一条回复必须只输出一个 JSON 对象，不能使用 markdown 代码块，不能附加解释文字。所有字段都必须包含；没有值时，字符串字段用 null，数组字段用 []。结构如下：
 {{
   "status": "success|failed|needs_confirmation",
   "summary": "一句话说明本次执行结果",
-  "sprint": "可选，Sprint 名称",
+  "sprint": "Sprint 名称或 null",
   "artifacts": [
     {{"title": "产出文档标题", "url": "https://alidocs.dingtalk.com/i/nodes/..."}}
   ],
-  "notificationMarkdown": "可选，钉钉 markdown 汇总消息",
-  "notifyAtUserIds": ["可选，钉钉 userId"],
-  "note": "可选，补充说明或人工确认项"
+  "notificationMarkdown": "钉钉 markdown 汇总消息或 null",
+  "notifyAtUserIds": ["钉钉 userId，没有则返回空数组"],
+  "note": "补充说明、人工确认项或 null"
 }}
 """.strip()
     return common + "\n\n" + job_instruction(job_type)

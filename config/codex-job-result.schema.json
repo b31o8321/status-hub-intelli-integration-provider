@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "status",
+    "summary",
+    "sprint",
+    "artifacts",
+    "notificationMarkdown",
+    "notifyAtUserIds",
+    "note"
+  ],
+  "properties": {
+    "status": {
+      "type": "string",
+      "enum": ["success", "failed", "needs_confirmation"]
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sprint": {
+      "type": ["string", "null"]
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["title", "url"],
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "url": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "notificationMarkdown": {
+      "type": ["string", "null"]
+    },
+    "notifyAtUserIds": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "note": {
+      "type": ["string", "null"]
+    }
+  }
+}
