@@ -30,6 +30,8 @@ HUB_SEVERITY = {
     "failed": 5,
 }
 
+MAX_ARTIFACT_LINKS_PER_JOB = 3
+
 
 def automation_home() -> Path:
     override = os.environ.get("INTELLI_AUTOMATION_HOME")
@@ -178,7 +180,11 @@ def subtitle_for_run(
     return f"{summary} · {note}" if note else summary
 
 
-def recent_artifact_links(job_type: str, runs: list[dict[str, Any]], limit: int = 3) -> list[dict[str, str]]:
+def recent_artifact_links(
+    job_type: str,
+    runs: list[dict[str, Any]],
+    limit: int = MAX_ARTIFACT_LINKS_PER_JOB,
+) -> list[dict[str, str]]:
     links = []
     related = [run for run in runs if str(run.get("jobType")) == job_type]
     for run in sorted(related, key=sort_key, reverse=True):
