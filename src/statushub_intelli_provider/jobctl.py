@@ -7,6 +7,7 @@ import json
 import tempfile
 
 from .jobs import JOB_TYPES
+from .notification import notify_run
 from .runner import run_job
 from .scheduler import load_schedules, next_run_after, set_schedule_enabled
 from .status import runs_directory
@@ -40,6 +41,9 @@ def main(argv: list[str] | None = None) -> int:
     record.add_argument("--artifact-url")
     record.add_argument("--log-path")
     record.add_argument("--note")
+    record.add_argument("--notification-markdown")
+    record.add_argument("--notify-at-user-ids")
+    record.add_argument("--send-notification", action="store_true")
 
     run = subparsers.add_parser("run", help="run one supported job through the provider runner")
     run.add_argument("--job-type", required=True, choices=sorted(JOB_TYPES))
@@ -88,6 +92,7 @@ def record_run(args: argparse.Namespace) -> int:
         "sprint": args.sprint,
         "logPath": args.log_path,
         "note": args.note,
+        "notificationMarkdown": args.notification_markdown,
     }
     for key, value in optional.items():
         if value:
@@ -101,8 +106,17 @@ def record_run(args: argparse.Namespace) -> int:
             }
         ]
 
+    if args.notify_at_user_ids:
+        record["notifyAtUserIds"] = [
+            value.strip()
+            for value in args.notify_at_user_ids.split(",")
+            if value.strip()
+        ]
+
     output = runs_directory() / f"{run_id}.json"
     write_json(output, record)
+    if args.send_notification:
+        notify_run(record)
     print(output)
     return 0
 

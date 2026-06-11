@@ -3,7 +3,8 @@
   "sprintRootFolderUrl": "https://alidocs.dingtalk.com/i/nodes/kDnRL6jAJMKP6OwRcXgv3lLGWyMoPYe1",
   "sourceLinks": {
     "integrationDemandTable": "https://alidocs.dingtalk.com/i/nodes/93NwLYZXWyQw9BN3HXlE4KA1WkyEqBQm?cid=5135888%3A4726190016&corpId=ding6b997aba57dd135335c2f4657eb6378f&iframeQuery=entrance%3Ddata%26sheetId%3Dp3H6ppE%26viewId%3DfnsvxPs",
-    "iterationRequirementTable": "https://alidocs.dingtalk.com/i/nodes/vy20BglGWOvXrwqbCm7Q29aP8A7depqY?cid=66369750554&corpId=ding6b997aba57dd135335c2f4657eb6378f&iframeQuery=entrance%3Ddata%26sheetId%3DtB7knsJ%26viewId%3D33fvQ2j"
+    "iterationRequirementTable": "https://alidocs.dingtalk.com/i/nodes/vy20BglGWOvXrwqbCm7Q29aP8A7depqY?cid=66369750554&corpId=ding6b997aba57dd135335c2f4657eb6378f&iframeQuery=entrance%3Ddata%26sheetId%3DtB7knsJ%26viewId%3D33fvQ2j",
+    "iterationRequirementDevelopmentView": "https://alidocs.dingtalk.com/i/nodes/vy20BglGWOvXrwqbCm7Q29aP8A7depqY?cid=66369750554&corpId=ding6b997aba57dd135335c2f4657eb6378f&iframeQuery=entrance%3Ddata%26sheetId%3DtB7knsJ%26viewId%3Db73T91w"
   },
   "productionLogs": {
     "slsProject": "shulex-prod-applications-0714",
@@ -37,8 +38,7 @@
     "dingtalk": {
       "enabled": false,
       "jobTypes": [
-        "daily-feedback-defect-triage",
-        "track-sprint-demand-progress"
+        "daily-feedback-defect-triage"
       ]
     }
   },
@@ -47,13 +47,7 @@
       "jobType": "daily-feedback-defect-triage",
       "enabled": true,
       "cron": "30 9 * * 1-5",
-      "label": "工作日 09:30 自动生成每日反馈缺陷分析"
-    },
-    {
-      "jobType": "track-sprint-demand-progress",
-      "enabled": true,
-      "cron": "0 17 * * 1-5",
-      "label": "工作日 17:00 自动追踪迭代需求进度"
+      "label": "工作日 09:30 自动生成每日反馈缺陷分析和进行中需求进度提醒"
     },
     {
       "jobType": "prepare-sprint-iteration",
@@ -81,14 +75,7 @@
       "skill": "daily-feedback-defect-triage",
       "cadence": "daily",
       "requiresHumanConfirmation": true,
-      "outputs": ["module grouping", "owner assignment", "repair candidates"]
-    },
-    {
-      "jobType": "track-sprint-demand-progress",
-      "skill": "track-sprint-demand-progress",
-      "cadence": "daily-or-manual",
-      "requiresHumanConfirmation": true,
-      "outputs": ["progress report", "candidate writeback list"]
+      "outputs": ["daily report document", "defect grouping", "owner assignment", "repair candidates", "in-progress demand reminder"]
     },
     {
       "jobType": "production-log-analysis",

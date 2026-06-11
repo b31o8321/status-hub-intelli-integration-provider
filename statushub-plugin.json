@@ -1,7 +1,7 @@
 {
   "id": "intelli-integration",
   "title": "Intelli 集成项目",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "providers": [
     {
       "id": "automation",
@@ -42,10 +42,9 @@
               "key": "notifications.dingtalk.jobTypes",
               "title": "通知 Job",
               "type": "multiselect",
-              "defaultValue": "daily-feedback-defect-triage,track-sprint-demand-progress",
+              "defaultValue": "daily-feedback-defect-triage",
               "options": [
                 { "value": "daily-feedback-defect-triage", "title": "每日反馈缺陷分析" },
-                { "value": "track-sprint-demand-progress", "title": "迭代进度追踪" },
                 { "value": "prepare-sprint-iteration", "title": "迭代需求整理" },
                 { "value": "production-log-analysis", "title": "生产日志分析" }
               ]

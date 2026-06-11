@@ -7,6 +7,7 @@ import os
 import tempfile
 from typing import Any
 
+from .config import load_config
 from .jobs import JOB_DEFINITIONS
 
 
@@ -81,9 +82,11 @@ def build_snapshot(runs_dir: Path | None = None) -> dict[str, Any]:
     runs = load_runs(runs_dir)
     latest = latest_runs_by_type(runs)
     schedule_by_type = load_schedule_details()
+    job_config_by_type = configured_jobs()
     items = []
 
     for definition in JOB_DEFINITIONS:
+        job_config = job_config_by_type.get(definition.job_type, {})
         run = latest.get(definition.job_type)
         schedule = schedule_by_type.get(definition.job_type, {})
         detail = display_schedule_detail(schedule)
@@ -113,6 +116,25 @@ def build_snapshot(runs_dir: Path | None = None) -> dict[str, Any]:
             ],
             "workingDirectory": ".",
         }
+        actions = [schedule_action]
+        if job_config.get("command"):
+            actions.insert(
+                0,
+                {
+                    "id": "run",
+                    "title": "触发",
+                    "command": "bin/intelli-integration-job",
+                    "arguments": [
+                        "run",
+                        "--job-type",
+                        definition.job_type,
+                        "--trigger",
+                        "hub",
+                    ],
+                    "workingDirectory": ".",
+                },
+            )
+
         items.append(
             {
                 "id": definition.job_type,
@@ -122,22 +144,7 @@ def build_snapshot(runs_dir: Path | None = None) -> dict[str, Any]:
                 "url": artifact_url,
                 "value": value_for(status),
                 "detail": detail,
-                "actions": [
-                    {
-                        "id": "run",
-                        "title": "触发",
-                        "command": "bin/intelli-integration-job",
-                        "arguments": [
-                            "run",
-                            "--job-type",
-                            definition.job_type,
-                            "--trigger",
-                            "hub",
-                        ],
-                        "workingDirectory": ".",
-                    },
-                    schedule_action,
-                ],
+                "actions": actions,
                 "links": recent_artifact_links(definition.job_type, runs),
             }
         )
@@ -224,6 +231,15 @@ def load_schedule_details() -> dict[str, dict[str, str]]:
     except ImportError:
         return {}
     return schedule_details()
+
+
+def configured_jobs() -> dict[str, dict[str, Any]]:
+    config = load_config()
+    result: dict[str, dict[str, Any]] = {}
+    for job in config.get("jobs", []):
+        if isinstance(job, dict) and job.get("jobType"):
+            result[str(job["jobType"])] = job
+    return result
 
 
 def value_for(status: str) -> str:

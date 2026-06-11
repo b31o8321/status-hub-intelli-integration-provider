@@ -28,7 +28,13 @@ def notify_run(record: dict[str, Any]) -> None:
     job_types = settings.get("jobTypes")
     if isinstance(job_types, list) and job_types and record.get("jobType") not in job_types:
         return
-    send_dingtalk_markdown(webhook, str(settings.get("secret") or ""), notification_title(record), notification_markdown(record))
+    send_dingtalk_markdown(
+        webhook,
+        str(settings.get("secret") or ""),
+        notification_title(record),
+        notification_markdown(record),
+        at_user_ids(record),
+    )
 
 
 def dingtalk_settings() -> dict[str, Any]:
@@ -81,7 +87,13 @@ def build_dingtalk_webhook(value: str) -> str:
     return f"{DINGTALK_ROBOT_SEND_URL}?access_token={parse.quote(value, safe='')}"
 
 
-def send_dingtalk_markdown(webhook: str, secret: str, title: str, markdown: str) -> None:
+def send_dingtalk_markdown(
+    webhook: str,
+    secret: str,
+    title: str,
+    markdown: str,
+    at_user_ids: list[str] | None = None,
+) -> None:
     url = signed_webhook(webhook, secret)
     payload = {
         "msgtype": "markdown",
@@ -90,6 +102,8 @@ def send_dingtalk_markdown(webhook: str, secret: str, title: str, markdown: str)
             "text": markdown,
         },
     }
+    if at_user_ids:
+        payload["at"] = {"atUserIds": at_user_ids, "isAtAll": False}
     data = json.dumps(payload, ensure_ascii=False).encode("utf-8")
     req = request.Request(
         url,
@@ -117,6 +131,10 @@ def notification_title(record: dict[str, Any]) -> str:
 
 
 def notification_markdown(record: dict[str, Any]) -> str:
+    custom = str(record.get("notificationMarkdown") or "").strip()
+    if custom:
+        return custom
+
     title = JOB_TITLE.get(str(record.get("jobType")), str(record.get("jobType", "Intelli 自动化")))
     lines = [
         f"### {title}",
@@ -136,6 +154,23 @@ def notification_markdown(record: dict[str, Any]) -> str:
     if record.get("logPath"):
         lines.append(f"- 日志：`{record['logPath']}`")
     return "\n".join(lines)
+
+
+def at_user_ids(record: dict[str, Any]) -> list[str]:
+    values = record.get("notifyAtUserIds")
+    if isinstance(values, str):
+        values = [item.strip() for item in values.split(",")]
+    if not isinstance(values, list):
+        return []
+    result: list[str] = []
+    seen = set()
+    for value in values:
+        user_id = str(value).strip()
+        if not user_id or user_id in seen:
+            continue
+        seen.add(user_id)
+        result.append(user_id)
+    return result
 
 
 def status_text(record: dict[str, Any]) -> str:

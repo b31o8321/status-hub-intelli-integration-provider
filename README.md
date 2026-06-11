@@ -10,14 +10,15 @@ Hub app.
 
 ## Features
 
-The provider exposes four Intelli integration work streams:
+The provider exposes three Intelli integration work streams:
 
 - Sprint demand preparation: collect integration-related demand candidates,
-  manual demand notes, point estimates, priorities, and sprint document links.
+  manual demand notes, point estimates, priorities, sprint document links, and
+  demand-pool status items that may need human-confirmed sync.
 - Daily feedback defect triage: group daily feedback defects by module and
-  assign owners for investigation.
-- Sprint demand progress tracking: compare sprint demand docs with requirement
-  table state and prepare human-confirmed backfill actions.
+  assign owners for investigation. This daily job also checks in-progress
+  integration requirements planned for the current week and reminds owners to
+  update progress or report blockers.
 - Production log analysis: track production integration-error analysis outputs
   separately from sprint demand preparation.
 
@@ -53,8 +54,7 @@ Default schedules:
 
 | Job | Schedule | Behavior |
 | --- | --- | --- |
-| Daily feedback defect triage | Weekdays 09:30 | Create a run record for daily defect analysis |
-| Sprint demand progress tracking | Weekdays 17:00 | Create a run record for progress tracking |
+| Daily feedback defect triage | Weekdays 09:30 | Create/update the daily feedback and progress document, then send a summary DingTalk reminder |
 | Sprint demand preparation | Friday 10:00 | Create a run record for next-sprint demand preparation |
 | Production log analysis | Disabled by default | Manual trigger only |
 
@@ -83,7 +83,6 @@ The provider can send a DingTalk robot markdown message when a run finishes.
 By default only these job types are selected for notifications:
 
 - `daily-feedback-defect-triage`
-- `track-sprint-demand-progress`
 
 The repository does not store robot credentials. Create this local file:
 
@@ -120,8 +119,10 @@ export DINGTALK_ROBOT_SECRET="SEC..."
 
 `DINGTALK_ROBOT_WEBHOOK` remains supported for older local setups.
 
-The message includes status, trigger source, short summary, up to three artifact
-links, and a log path when available.
+The default message includes status, trigger source, short summary, up to three
+artifact links, and a log path when available. Run records may also provide
+`notificationMarkdown` and `notifyAtUserIds`; in that case the provider sends
+the custom markdown summary and mentions the listed DingTalk users.
 
 ## Status Hub Plugin
 
@@ -168,6 +169,8 @@ Scheduled tasks and Codex skills should write one JSON file per run:
     }
   ],
   "logPath": "/Users/norman/Library/Application Support/IntelliIntegrationAutomation/logs/example.log",
+  "notificationMarkdown": "### Intelli 每日反馈与进度提醒\n...",
+  "notifyAtUserIds": ["17786332925024466"],
   "note": "人工确认前不写回 AI 表格。"
 }
 ```
@@ -193,10 +196,13 @@ For local testing or manual integration:
 ```bash
 bin/intelli-integration-job record \
   --job-type daily-feedback-defect-triage \
-  --status needs_confirmation \
-  --summary "生成每日反馈缺陷分析，等待 Owner 确认" \
-  --artifact-title "每日反馈缺陷分析" \
-  --artifact-url "https://alidocs.dingtalk.com/i/nodes/..."
+  --status success \
+  --summary "缺陷反馈 12 条，聚类 4 个；本周进行中集成需求 3 个，提醒 2 位 Owner。" \
+  --artifact-title "每日反馈与进度提醒 2026-06-11" \
+  --artifact-url "https://alidocs.dingtalk.com/i/nodes/..." \
+  --notification-markdown "### Intelli 每日反馈与进度提醒 2026-06-11\n..." \
+  --notify-at-user-ids "17786332925024466,17417778857341994" \
+  --send-notification
 ```
 
 Run a job through the provider runner:
