@@ -97,18 +97,28 @@ Example:
 {
   "dingtalk": {
     "enabled": true,
-    "webhook": "https://oapi.dingtalk.com/robot/send?access_token=...",
+    "accessToken": "xxx",
     "secret": "SEC..."
   }
 }
 ```
 
+`accessToken` is the value after `access_token=` in the DingTalk robot webhook.
+The provider builds the fixed DingTalk robot URL internally. The old `webhook`
+field is still supported for compatibility.
+
+`secret` is optional. Fill it only when the DingTalk robot security setting uses
+signing and provides a `SEC...` secret. Leave it empty when the robot uses
+keyword or IP allowlist security.
+
 You can also use environment variables:
 
 ```bash
-export DINGTALK_ROBOT_WEBHOOK="https://oapi.dingtalk.com/robot/send?access_token=..."
+export DINGTALK_ROBOT_ACCESS_TOKEN="xxx"
 export DINGTALK_ROBOT_SECRET="SEC..."
 ```
+
+`DINGTALK_ROBOT_WEBHOOK` remains supported for older local setups.
 
 The message includes status, trigger source, short summary, up to three artifact
 links, and a log path when available.

@@ -1,7 +1,7 @@
 {
   "id": "intelli-integration",
   "title": "Intelli 集成项目",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "providers": [
     {
       "id": "automation",
@@ -25,16 +25,18 @@
               "help": "运行完成后发送简介和产出链接到钉钉机器人"
             },
             {
-              "key": "notifications.dingtalk.webhook",
-              "title": "机器人 Webhook",
+              "key": "notifications.dingtalk.accessToken",
+              "title": "机器人 Token",
               "type": "password",
-              "placeholder": "https://oapi.dingtalk.com/robot/send?access_token=..."
+              "placeholder": "复制 access_token= 后面的内容",
+              "help": "只需要填写钉钉机器人 Webhook 中 access_token= 后面的 token，provider 会自动拼接固定地址"
             },
             {
               "key": "notifications.dingtalk.secret",
               "title": "加签 Secret",
               "type": "password",
-              "placeholder": "SEC..."
+              "placeholder": "SEC...",
+              "help": "仅当钉钉机器人安全设置开启“加签”时填写；未开启加签时留空"
             },
             {
               "key": "notifications.dingtalk.jobTypes",

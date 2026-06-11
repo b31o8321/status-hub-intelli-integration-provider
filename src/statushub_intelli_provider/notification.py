@@ -17,16 +17,18 @@ from .status import automation_home
 
 
 JOB_TITLE = {job.job_type: job.title for job in JOB_DEFINITIONS}
+DINGTALK_ROBOT_SEND_URL = "https://oapi.dingtalk.com/robot/send"
 
 
 def notify_run(record: dict[str, Any]) -> None:
     settings = dingtalk_settings()
-    if not settings.get("enabled") or not settings.get("webhook"):
+    webhook = dingtalk_webhook(settings)
+    if not settings.get("enabled") or not webhook:
         return
     job_types = settings.get("jobTypes")
     if isinstance(job_types, list) and job_types and record.get("jobType") not in job_types:
         return
-    send_dingtalk_markdown(settings, notification_title(record), notification_markdown(record))
+    send_dingtalk_markdown(webhook, str(settings.get("secret") or ""), notification_title(record), notification_markdown(record))
 
 
 def dingtalk_settings() -> dict[str, Any]:
@@ -37,6 +39,12 @@ def dingtalk_settings() -> dict[str, Any]:
         settings.update(local)
     if os.environ.get("DINGTALK_ROBOT_WEBHOOK"):
         settings["webhook"] = os.environ["DINGTALK_ROBOT_WEBHOOK"]
+        settings["enabled"] = True
+    if os.environ.get("DINGTALK_ROBOT_ACCESS_TOKEN"):
+        settings["accessToken"] = os.environ["DINGTALK_ROBOT_ACCESS_TOKEN"]
+        settings["enabled"] = True
+    if os.environ.get("DINGTALK_ROBOT_TOKEN"):
+        settings["accessToken"] = os.environ["DINGTALK_ROBOT_TOKEN"]
         settings["enabled"] = True
     if os.environ.get("DINGTALK_ROBOT_SECRET"):
         settings["secret"] = os.environ["DINGTALK_ROBOT_SECRET"]
@@ -52,8 +60,29 @@ def load_local_notification_config() -> dict[str, Any]:
     return data if isinstance(data, dict) else {}
 
 
-def send_dingtalk_markdown(settings: dict[str, Any], title: str, markdown: str) -> None:
-    url = signed_webhook(str(settings["webhook"]), str(settings.get("secret") or ""))
+def dingtalk_webhook(settings: dict[str, Any]) -> str:
+    access_token = str(settings.get("accessToken") or "").strip()
+    webhook = str(settings.get("webhook") or "").strip()
+    if access_token:
+        return build_dingtalk_webhook(access_token)
+    if webhook:
+        return build_dingtalk_webhook(webhook)
+    return ""
+
+
+def build_dingtalk_webhook(value: str) -> str:
+    value = value.strip()
+    if not value:
+        return ""
+    if value.startswith("http://") or value.startswith("https://"):
+        return value
+    if value.startswith("access_token="):
+        value = value.split("=", 1)[1].strip()
+    return f"{DINGTALK_ROBOT_SEND_URL}?access_token={parse.quote(value, safe='')}"
+
+
+def send_dingtalk_markdown(webhook: str, secret: str, title: str, markdown: str) -> None:
+    url = signed_webhook(webhook, secret)
     payload = {
         "msgtype": "markdown",
         "markdown": {
@@ -136,4 +165,3 @@ def short_datetime(value: str) -> str:
         return datetime.fromisoformat(value).strftime("%m-%d %H:%M")
     except ValueError:
         return value
-
