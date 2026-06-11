@@ -54,17 +54,17 @@ Default schedules:
 
 | Job | Schedule | Behavior |
 | --- | --- | --- |
-| Daily feedback defect triage | Weekdays 09:30 | Create/update the daily feedback and progress document, then send a summary DingTalk reminder |
-| Sprint demand preparation | Friday 10:00 | Create a run record for next-sprint demand preparation |
+| Daily feedback defect triage | Weekdays 10:30 | Run the Codex skill, create/update the daily feedback and progress document, then send a summary DingTalk reminder when notification is enabled |
+| Sprint demand preparation | Friday 10:00 | Run the Codex skill and create/update the next-sprint demand document |
 | Production log analysis | Disabled by default | Manual trigger only |
 
 The scheduler uses the `schedules` array in
 `config/intelli-integration-workflow.json`. It supports standard 5-field cron
 expressions: `minute hour day month weekday`.
 
-The first implementation intentionally records a run and marks it
-`needs_confirmation` unless the job config provides a shell `command`. This keeps
-human/Codex confirmation in the loop and avoids silent DingTalk writeback.
+Scheduled runs and manual Status Hub triggers use the same provider runner. When
+a job config provides `command`, the runner executes that command and records the
+returned result. The built-in commands call the local Codex CLI.
 
 Schedules can be enabled or disabled without editing the plugin repository:
 
@@ -76,6 +76,46 @@ bin/intelli-integration-job set-schedule \
 
 Status Hub renders provider item actions, so each job can be manually triggered
 from the provider detail page and its schedule can be turned on or off there.
+
+## Codex Execution Protocol
+
+The provider executes jobs through:
+
+```text
+bin/intelli-run-codex-job
+```
+
+The script calls local `codex exec` in the `shulex-intelli` workspace and asks
+Codex to run the configured skill. Requirements:
+
+- The local `codex` CLI must be installed and signed in.
+- DingTalk MCP access must be available to Codex when a job needs to create or
+  update DingTalk documents.
+- `CODEX_BIN` can override the Codex binary path.
+- `INTELLI_CODEX_WORKDIR` can override the workspace passed to `codex exec`.
+
+Codex must return a fixed JSON object as its final message. The provider parses
+that JSON, writes the run record, exposes document links to Status Hub, and sends
+DingTalk robot notifications according to local notification settings.
+
+Expected final-message JSON:
+
+```json
+{
+  "status": "success",
+  "summary": "缺陷反馈 12 条，聚类 4 个；本周进行中集成需求 3 个，提醒 2 位 Owner。",
+  "sprint": "Sprint 202606 15 - 19",
+  "artifacts": [
+    {
+      "title": "每日反馈与进度提醒 2026-06-11",
+      "url": "https://alidocs.dingtalk.com/i/nodes/..."
+    }
+  ],
+  "notificationMarkdown": "### Intelli 每日反馈与进度提醒\n...",
+  "notifyAtUserIds": ["17786332925024466"],
+  "note": "人工确认前不写回 AI 表格。"
+}
+```
 
 ## DingTalk Robot Notifications
 
@@ -154,12 +194,12 @@ Scheduled tasks and Codex skills should write one JSON file per run:
 
 ```json
 {
-  "runId": "20260611-093000-daily-feedback-defect-triage",
+  "runId": "20260611-103000-daily-feedback-defect-triage",
   "jobType": "daily-feedback-defect-triage",
-  "status": "needs_confirmation",
+  "status": "success",
   "trigger": "scheduled",
-  "startedAt": "2026-06-11T09:30:00+08:00",
-  "finishedAt": "2026-06-11T09:36:42+08:00",
+  "startedAt": "2026-06-11T10:30:00+08:00",
+  "finishedAt": "2026-06-11T10:36:42+08:00",
   "sprint": "Sprint 202606 15 - 19",
   "summary": "分析缺陷反馈 18 条，生成 5 个模块处理项",
   "artifacts": [
@@ -185,9 +225,9 @@ Supported run statuses:
 - `canceled`
 - `unknown`
 
-Jobs that would write back to DingTalk AI tables should use
-`needs_confirmation` after analysis. The actual writeback should happen only
-after manual confirmation.
+Use `needs_confirmation` only when the run genuinely needs a human decision
+before it can be considered complete. A job that successfully creates/updates
+documents and prepares optional notification content should return `success`.
 
 ## Recording Runs
 
@@ -221,9 +261,9 @@ bin/intelli-integration-job list-schedules
 ```
 
 If a job config has a `command`, the runner executes it, writes stdout/stderr to
-`~/Library/Application Support/IntelliIntegrationAutomation/logs`, and stores the
-log path in the run record. Without a command, the runner creates a
-`needs_confirmation` record for manual/Codex execution.
+`~/Library/Application Support/IntelliIntegrationAutomation/logs`, parses the
+fixed JSON result, and stores the log path in the run record. Without a command,
+the runner creates a `needs_confirmation` record.
 
 Run the provider once:
 

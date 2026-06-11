@@ -2,11 +2,12 @@ from __future__ import annotations
 
 from datetime import datetime
 from pathlib import Path
+import json
 import os
 import subprocess
 from typing import Any
 
-from .config import load_config
+from .config import ROOT_DIR, load_config
 from .jobs import JOB_DEFINITIONS
 from .notification import notify_run
 from .status import automation_home, now_iso
@@ -130,21 +131,122 @@ def execute_command_job(
         check=False,
         shell=shell,
         env=env,
+        cwd=str(ROOT_DIR),
     )
     log_path.write_text(completed.stdout or "", encoding="utf-8")
+    parsed = parse_command_result(completed.stdout or "")
     if completed.returncode == 0:
-        return {
+        result = {
             "status": str(job_config.get("successStatus") or "needs_confirmation"),
             "summary": f"{JOB_BY_TYPE[job_type].title} 执行完成",
             "logPath": str(log_path),
-            "note": "命令已完成，按配置等待人工确认或标记完成。",
         }
-    return {
+        result.update(filtered_result(parsed))
+        result["status"] = normalize_status(str(result.get("status") or "success"))
+        return result
+    failure = {
         "status": "failed",
         "summary": f"{JOB_BY_TYPE[job_type].title} 执行失败",
         "logPath": str(log_path),
         "note": f"命令退出码：{completed.returncode}",
     }
+    failure.update(filtered_result(parsed))
+    failure["status"] = "failed"
+    if not failure.get("note"):
+        failure["note"] = f"命令退出码：{completed.returncode}"
+    return failure
+
+
+def parse_command_result(output: str) -> dict[str, Any]:
+    marked = extract_marked_json(output)
+    if marked:
+        return marked
+    stripped = strip_code_fence(output.strip())
+    direct = load_json_object(stripped)
+    if direct:
+        return direct
+    return last_json_object(output)
+
+
+def extract_marked_json(output: str) -> dict[str, Any]:
+    begin = "STATUS_HUB_RESULT_JSON_BEGIN"
+    end = "STATUS_HUB_RESULT_JSON_END"
+    if begin not in output or end not in output:
+        return {}
+    payload = output.split(begin, 1)[1].split(end, 1)[0].strip()
+    return load_json_object(strip_code_fence(payload))
+
+
+def strip_code_fence(value: str) -> str:
+    if value.startswith("```"):
+        lines = value.splitlines()
+        if len(lines) >= 2 and lines[-1].strip() == "```":
+            return "\n".join(lines[1:-1]).strip()
+    return value
+
+
+def load_json_object(value: str) -> dict[str, Any]:
+    if not value:
+        return {}
+    try:
+        parsed = json.loads(value)
+    except json.JSONDecodeError:
+        return {}
+    return parsed if isinstance(parsed, dict) else {}
+
+
+def last_json_object(output: str) -> dict[str, Any]:
+    decoder = json.JSONDecoder()
+    latest: dict[str, Any] = {}
+    for index, char in enumerate(output):
+        if char != "{":
+            continue
+        try:
+            parsed, _ = decoder.raw_decode(output[index:])
+        except json.JSONDecodeError:
+            continue
+        if isinstance(parsed, dict):
+            latest = parsed
+    return latest
+
+
+def filtered_result(result: dict[str, Any]) -> dict[str, Any]:
+    allowed = {
+        "status",
+        "summary",
+        "sprint",
+        "artifacts",
+        "notificationMarkdown",
+        "notifyAtUserIds",
+        "note",
+    }
+    filtered = {key: value for key, value in result.items() if key in allowed and value}
+    if "artifacts" in filtered and not valid_artifacts(filtered["artifacts"]):
+        filtered.pop("artifacts", None)
+    if "notifyAtUserIds" in filtered and isinstance(filtered["notifyAtUserIds"], str):
+        filtered["notifyAtUserIds"] = [
+            item.strip()
+            for item in filtered["notifyAtUserIds"].split(",")
+            if item.strip()
+        ]
+    if "notifyAtUserIds" in filtered and not isinstance(filtered["notifyAtUserIds"], list):
+        filtered.pop("notifyAtUserIds", None)
+    return filtered
+
+
+def valid_artifacts(value: Any) -> bool:
+    if not isinstance(value, list):
+        return False
+    for item in value:
+        if not isinstance(item, dict) or not item.get("url"):
+            return False
+    return True
+
+
+def normalize_status(status: str) -> str:
+    if status in {"pending", "running", "success", "failed", "needs_confirmation", "canceled", "unknown"}:
+        return status
+    return "success"
 
 
 def configured_job(config: dict[str, Any], job_type: str) -> dict[str, Any]:

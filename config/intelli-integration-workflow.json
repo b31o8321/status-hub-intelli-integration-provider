@@ -46,8 +46,8 @@
     {
       "jobType": "daily-feedback-defect-triage",
       "enabled": true,
-      "cron": "30 9 * * 1-5",
-      "label": "工作日 09:30 自动生成每日反馈缺陷分析和进行中需求进度提醒"
+      "cron": "30 10 * * 1-5",
+      "label": "工作日 10:30 自动生成每日反馈缺陷分析和进行中需求进度提醒"
     },
     {
       "jobType": "prepare-sprint-iteration",
@@ -68,6 +68,9 @@
       "skill": "prepare-sprint-iteration",
       "cadence": "weekly-or-manual",
       "requiresHumanConfirmation": true,
+      "command": ["bin/intelli-run-codex-job"],
+      "timeoutSeconds": 7200,
+      "successStatus": "success",
       "outputs": ["sprint folder", "需求整理文档", "point estimate", "priority rationale"]
     },
     {
@@ -75,6 +78,9 @@
       "skill": "daily-feedback-defect-triage",
       "cadence": "daily",
       "requiresHumanConfirmation": true,
+      "command": ["bin/intelli-run-codex-job"],
+      "timeoutSeconds": 7200,
+      "successStatus": "success",
       "outputs": ["daily report document", "defect grouping", "owner assignment", "repair candidates", "in-progress demand reminder"]
     },
     {
@@ -82,6 +88,9 @@
       "skill": "prepare-sprint-iteration",
       "cadence": "manual-or-scheduled",
       "requiresHumanConfirmation": true,
+      "command": ["bin/intelli-run-codex-job"],
+      "timeoutSeconds": 7200,
+      "successStatus": "success",
       "outputs": ["high-frequency error summary", "noise-reduction candidates", "fix candidates"]
     }
   ]
