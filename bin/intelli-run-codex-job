@@ -176,6 +176,9 @@ def job_instruction(job_type: str) -> str:
 本次任务：
 - 准备下一轮集成项目迭代需求。
 - 整理集成相关需求、人工补充需求、point 估算、优先级和原因。
+- 需求整理文档的所有候选需求、人工补充、项目管理状态核对、生产日志和代码 ROI 表格都必须包含“参考源链接”列。
+- 参考源链接至少包含：需求池源表 integrationDemandTable、项目管理需求表 iterationRequirementTable、进行中需求视图 iterationRequirementDevelopmentView；单条记录没有独立链接时，在链接旁写 recordId/需求编号/日志查询关键词。
+- 数据来源与筛选口径模块必须集中贴出上述源表链接、SLS 路由和已检查代码路径，方便人工回看原始来源。
 - 单独列出“项目管理已完成但需求池未更新”的候选项，提醒人工确认后更新。
 - 创建或更新 Sprint 文件夹中的需求整理文档。
 - 返回 artifacts 至少包含需求整理文档链接。

@@ -71,7 +71,7 @@
       "command": ["bin/intelli-run-codex-job"],
       "timeoutSeconds": 7200,
       "successStatus": "success",
-      "outputs": ["sprint folder", "需求整理文档", "point estimate", "priority rationale"]
+      "outputs": ["sprint folder", "需求整理文档", "source reference links", "point estimate", "priority rationale"]
     },
     {
       "jobType": "daily-feedback-defect-triage",

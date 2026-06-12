@@ -14,7 +14,9 @@ The provider exposes three Intelli integration work streams:
 
 - Sprint demand preparation: collect integration-related demand candidates,
   manual demand notes, point estimates, priorities, sprint document links, and
-  demand-pool status items that may need human-confirmed sync.
+  demand-pool status items that may need human-confirmed sync. The generated
+  demand document must include source reference links for every candidate row so
+  reviewers can jump back to the original table, record, log query, or code path.
 - Daily feedback defect triage: group only integration-project related daily
   feedback defects by integration module and assign owners for investigation.
   This daily job also checks in-progress integration requirements planned for
@@ -97,6 +99,11 @@ Codex to run the configured skill. Requirements:
 Codex must return a fixed JSON object as its final message. The provider parses
 that JSON, writes the run record, exposes document links to Status Hub, and sends
 DingTalk robot notifications according to local notification settings.
+
+For `prepare-sprint-iteration`, the DingTalk demand document created by Codex
+must include a `参考源链接` column in the P0/P1/P2 demand tables and related
+modules. When a DingTalk AI Table row has no separate row URL, use the source
+table/view link plus the recordId or requirement number.
 
 Expected final-message JSON:
 
