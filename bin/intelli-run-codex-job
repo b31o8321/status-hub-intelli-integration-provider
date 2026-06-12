@@ -179,6 +179,8 @@ def job_instruction(job_type: str) -> str:
 - 需求整理文档的所有候选需求、人工补充、项目管理状态核对、生产日志和代码 ROI 表格都必须包含“参考源链接”列。
 - 参考源链接至少包含：需求池源表 integrationDemandTable、项目管理需求表 iterationRequirementTable、进行中需求视图 iterationRequirementDevelopmentView；单条记录没有独立链接时，在链接旁写 recordId/需求编号/日志查询关键词。
 - 数据来源与筛选口径模块必须集中贴出上述源表链接、SLS 路由和已检查代码路径，方便人工回看原始来源。
+- 生产日志第一层查询使用 `__tag__:service : shulex-intelli and severity : ERROR`，先聚合高频错误签名，再筛选集成相关链路。
+- 如果 SLS 查询失败是本机 OAuthProfile/token 过期，不要把它写进“生产日志整理出的需求与优化”表格；只在数据来源或 note 中说明“刷新 OAuthProfile 后重跑”。
 - 单独列出“项目管理已完成但需求池未更新”的候选项，提醒人工确认后更新。
 - 创建或更新 Sprint 文件夹中的需求整理文档。
 - 返回 artifacts 至少包含需求整理文档链接。
@@ -188,6 +190,8 @@ def job_instruction(job_type: str) -> str:
 本次任务：
 - 只做生产环境集成服务高频 error 日志分析。
 - 生产 SLS project 必须使用 shulex-prod-applications-0714。
+- 第一层查询使用 `__tag__:service : shulex-intelli and severity : ERROR`，先聚合高频错误签名，再筛选集成相关链路。
+- 如果 SLS 查询失败是本机 OAuthProfile/token 过期，不要生成日志派生需求；返回 failed 或在 note 中说明需要刷新 OAuthProfile 后重跑。
 - 输出降噪/修复候选，不要混入迭代需求整理，除非用户后续人工确认。
 - 如创建文档，返回 artifacts 文档链接。
 """.strip()
